@@ -1,0 +1,13 @@
+{% extends 'core/header.html' %}
+{% block content %}
+
+{% load render_table from django_tables2 %}
+{% load i18n %}
+
+<div class="container">
+    {% block table %}
+        {% render_table table %}
+    {% endblock table %}
+</div>
+
+{% endblock %}
