@@ -5,6 +5,14 @@
 {% load i18n %}
 
 <div class="container">
+    <br>
+    <h2>Authors</h2>
+    <div class="col-lg-6">
+        <a class="btn btn-success float-right" href="{% url 'create_authors' %}">
+            Agregar autor
+        </a>
+    </div>
+    <br>
     {% block table %}
         {% render_table table %}
     {% endblock table %}

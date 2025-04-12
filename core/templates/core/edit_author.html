@@ -1,0 +1,39 @@
+{% extends 'core/header.html' %}
+
+{% load crispy_forms_tags i18n %}
+
+
+{% block content %}
+    <div class="container">
+    <div class="card shadow align-items-center">
+        <div class="card-header" style="width: 100%;">
+            {% if instance %}
+                <h2 class="text-center">Editar producto</h2>
+            {% else %}
+                <h2 class="text-center">Nuevo producto</h2>
+            {% endif %}
+        </div>
+
+        <div class="card-body w-100" >
+            <form method="post" enctype="multipart/form-data">
+                {% crispy form %}
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock content %}
+
+{% comment %} {% block javascripts %}
+    {{ block.super }}
+    {{ form.media.js }}
+    <script>
+        $(function(){
+            $(".form-parsley").parsley();
+        })
+    </script>
+{% endblock javascripts %} 
+
+{% block css %}
+    {{ block.super }}
+    {{ form.media.css }}
+{% endblock css %}{% endcomment %}
