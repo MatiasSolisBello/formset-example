@@ -95,6 +95,8 @@ class AuthorEdit(SuccessMessageMixin, UpdateView):
             messages.success(request, "Author and books updated successfully")
             return self.form_valid(form)
         else:
+            print('1.-', form.errors)
+            print('2.- ', formset.errors)
             return self.form_invalid(form)
     
 
@@ -104,10 +106,19 @@ class AuthorDelete(DeleteView):
     template_name = 'core/confirm_delete.html'
     
     def get(self, request, *args, **kwargs):
+        print(request.GET)
         return super().get(request, *args, **kwargs)
+    
+    def get_object(self):
+        pk = self.kwargs.get("pk")
+        try:
+            return Author.objects.get(id=pk)
+        except Author.DoesNotExist as e:
+            raise Http404(e)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        print('get_context_data: ', context)
         if 'form' not in kwargs:
             context['form'] = ConfirmDeleteForm()
 

@@ -7,8 +7,8 @@ venv
 # custom editor config
 .vscode/
 
-
-**/__pycache__/
+# pycache
+__pycache__/*.pyc
 
 
 # database & logs

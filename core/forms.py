@@ -26,10 +26,11 @@ class BookForm(forms.ModelForm):
         model = Book
         fields = ('title', 'published_year')
         
+        
 BookFormSet = inlineformset_factory(
     Author,
     Book,
-    form=BookForm,  # <--- aquí estaba el error
+    form=BookForm,
     extra=1,
     min_num=1,
     can_delete=True
