@@ -1,2 +1,18 @@
+# venv
+env
+venv
+.env
 /myvenv
-db.sqlite3
+
+# custom editor config
+.vscode/
+
+
+**/__pycache__/
+
+
+# database & logs
+*.db
+*.sqlite3
+*.log
+*.sql
