@@ -11,6 +11,7 @@
  */
 ; (function ($) {
     $.fn.formset = function (opts) {
+        console.log('jquery.formset.js');
         var options = $.extend({}, $.fn.formset.defaults, opts),
             flatExtraClasses = options.extraClasses.join(' '),
             totalForms = $('#id_' + options.prefix + '-TOTAL_FORMS'),

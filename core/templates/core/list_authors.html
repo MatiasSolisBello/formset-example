@@ -5,17 +5,28 @@
 {% load i18n %}
 
 <div class="container">
-    <br>
-    <h2>Authors</h2>
-    <div class="col-lg-6">
-        <a class="btn btn-success float-right" href="{% url 'create_authors' %}">
-            Agregar autor
-        </a>
-    </div>
-    <br>
-    {% block table %}
-        {% render_table table %}
-    {% endblock table %}
-</div>
+    <div class="row" style="padding-top: 30px;">
+        <div class="col-lg-6">
+            <h3>Lista de Autores</h3>
+        </div>
 
+        <div class="col-lg-6">
+            <a class="btn btn-success float-right" href="{% url 'create_authors' %}">
+                Agregar autor
+            </a>
+        </div>
+    </div>
+
+    {% if table.rows %}
+    <div class="table-responsive">
+        {% block table %}
+            {% render_table table %}
+        {% endblock table %}
+    </div>
+    {% else %}
+        <div class="alert alert-info text-center mt-4 shadow-sm rounded">
+            <i class="bi bi-info-circle-fill"></i> No hay registros para mostrar.
+        </div>
+    {% endif %}
+</div>
 {% endblock %}

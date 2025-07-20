@@ -3,13 +3,12 @@ from django.shortcuts import render
 from django.urls import reverse_lazy
 from django.views.generic import DeleteView
 from django.utils.decorators import method_decorator
-from django.contrib.messages.views import SuccessMessageMixin
 from django.contrib import messages
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views import View
 from django.views.generic.list import ListView
-from django.views.generic.edit import FormView, UpdateView
+from django.views.generic.edit import CreateView, FormView, UpdateView
 
 
 from core.forms import AuthorForm, BookFormSet, ConfirmDeleteForm
@@ -27,77 +26,83 @@ class AuthorList(SingleTableView):
     table_class = AuthorTable
     template_name = "core/list_authors.html"
     
-class AuthorCreate(SuccessMessageMixin, View):
+    
+class AuthorCreate(SuccessMessageMixin, CreateView):
+    model = Author
+    form_class = AuthorForm
     template_name = 'core/edit_author.html'
     success_url = reverse_lazy('list_authors')
     success_message = "Author and books created successfully"
 
-    def get(self, request, *args, **kwargs):
-        form = AuthorForm()
-        formset = BookFormSet()
-        return render(request, self.template_name, {
-            'form': form,
-            'formset': formset,
-        })
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        if self.request.POST:
+            context['formset'] = BookFormSet(self.request.POST, 
+                                             prefix='authorbook_set')
+        else:
+            context['formset'] = BookFormSet(prefix='authorbook_set')
+        return context
 
-    def post(self, request, *args, **kwargs):
-        form = AuthorForm(request.POST)
-        formset = BookFormSet(request.POST)
-        if form.is_valid() and formset.is_valid():
-            author = form.save()
-            formset.instance = author
+    def form_valid(self, form):
+        context = self.get_context_data()
+        formset = context['formset']
+
+        if formset.is_valid():
+            self.object = form.save()
+            formset.instance = self.object
             formset.save()
-            messages.success(request, self.success_message)
-            return redirect(self.success_url)
-        return render(request, self.template_name, {
-            'form': form,
-            'formset': formset,
-        })
+            return super().form_valid(form)
+        else:
+            return self.form_invalid(form)
 
+    def form_invalid(self, form):
+        context = self.get_context_data(form=form)
+        return render(self.request, self.template_name, context)
     
 class AuthorEdit(SuccessMessageMixin, UpdateView):
     model = Author
     form_class = AuthorForm
     template_name = 'core/edit_author.html'
     success_url = reverse_lazy('list_authors')
-    
-    def get_object(self):
+    success_message = "Author and books updated successfully"
+
+    def get_object(self, queryset=None):
         try:
-            obj = Author.objects.get(id=self.kwargs['pk'])
+            return Author.objects.get(pk=self.kwargs['pk'])
         except Author.DoesNotExist as exc:
-            raise Http404(exc) from exc
-        print(obj)
-        return obj
-    
-    def get(self, request, *args, **kwargs):
-        obj = self.get_object()
-        form = AuthorForm(instance=obj)
-        formset = BookFormSet(instance=obj, prefix='authorbook_set')
-        return render(request, self.template_name, {
-            'instance': obj,
-            'form': form,
-            'formset': formset,
-        })
-        
-    def post(self, request, *args, **kwargs):
-        self.object = self.get_object()
-        form_class = self.get_form_class()
-        form = self.get_form(form_class)
-        
-        formset = BookFormSet(
-            self.request.POST, instance=self.object,
-            prefix='authorbook_set'
-        )
-        
-        if form.is_valid() and formset.is_valid():
-            form.save()
-            formset.save()
-            messages.success(request, "Author and books updated successfully")
-            return self.form_valid(form)
+            raise Http404("Author not found") from exc
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        if self.request.POST:
+            context['formset'] = BookFormSet(
+                self.request.POST,
+                instance=self.object,
+                prefix='authorbook_set'
+            )
         else:
-            print('1.-', form.errors)
-            print('2.- ', formset.errors)
+            context['formset'] = BookFormSet(
+                instance=self.object,
+                prefix='authorbook_set'
+            )
+        return context
+
+    def form_valid(self, form):
+        context = self.get_context_data()
+        formset = context['formset']
+
+        if formset.is_valid():
+            self.object = form.save()
+            formset.instance = self.object
+            formset.save()
+            messages.success(self.request, self.success_message)
+            return super().form_valid(form)
+        else:
             return self.form_invalid(form)
+
+    def form_invalid(self, form):
+        context = self.get_context_data(form=form)
+        return render(self.request, self.template_name, context)
     
 
 class AuthorDelete(DeleteView):
@@ -106,7 +111,6 @@ class AuthorDelete(DeleteView):
     template_name = 'core/confirm_delete.html'
     
     def get(self, request, *args, **kwargs):
-        print(request.GET)
         return super().get(request, *args, **kwargs)
     
     def get_object(self):
@@ -118,7 +122,6 @@ class AuthorDelete(DeleteView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        print('get_context_data: ', context)
         if 'form' not in kwargs:
             context['form'] = ConfirmDeleteForm()
 

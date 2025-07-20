@@ -24,7 +24,7 @@ class AuthorForm(forms.ModelForm):
 class BookForm(forms.ModelForm):
     class Meta:
         model = Book
-        fields = ('title', 'published_year')
+        exclude = ()
         
         
 BookFormSet = inlineformset_factory(
@@ -32,6 +32,5 @@ BookFormSet = inlineformset_factory(
     Book,
     form=BookForm,
     extra=1,
-    min_num=1,
     can_delete=True
 )

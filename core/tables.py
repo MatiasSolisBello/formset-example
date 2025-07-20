@@ -7,8 +7,8 @@ class AuthorTable(tables.Table):
     edit = LinkColumn(
         'edit_authors',
         args=[A('pk')],
-        verbose_name=_("Edit"),
-        text=_("Edit"),
+        verbose_name=_("Editar"),
+        text=_("Editar"),
         orderable=False,
         attrs={
             'a': {
@@ -20,8 +20,8 @@ class AuthorTable(tables.Table):
     delete = LinkColumn(
         'delete_authors',
         args=[A('pk')],
-        verbose_name=_("Delete"),
-        text=_("Delete"),
+        verbose_name=_("Eliminar"),
+        text=_("Eliminar"),
         orderable=False,
         attrs={
             'a': {
@@ -32,6 +32,5 @@ class AuthorTable(tables.Table):
     
     class Meta:
         model = Author
-        fields = [
-            'name', 'edit', 'delete'
-        ]
+        fields = ['name', 'edit', 'delete']
+        empty_text = "Sin registros"
