@@ -1,1 +1,6 @@
+asgiref==3.8.1
+crispy-bootstrap4==2024.10
 Django==5.1.8
+django-crispy-forms==2.3
+django-tables2==2.7.5
+sqlparse==0.5.3
