@@ -14,7 +14,7 @@ class Book(models.Model):
     author = models.ForeignKey(Author, 
                                on_delete=models.CASCADE, 
                                related_name='books')
-    title = models.CharField(max_length=200, verbose_name="Titulo del Libro")
+    title = models.CharField(max_length=200, verbose_name="Titulo")
     published_year = models.IntegerField(verbose_name="Año de Publicación")
     
     def __str__(self):

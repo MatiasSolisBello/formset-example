@@ -1,11 +1,12 @@
 {% extends 'core/header.html' %}
 {% block content %}
+{% load static %}
 
 {% load render_table from django_tables2 %}
 {% load i18n %}
 
 <div class="container">
-    <div class="row" style="padding-top: 30px;">
+    <div class="row">
         <div class="col-lg-6">
             <h3>Lista de Autores</h3>
         </div>
@@ -29,4 +30,8 @@
         </div>
     {% endif %}
 </div>
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'core/css/custom-table.css' %}">
+{% endblock extra_css %}
 {% endblock %}
