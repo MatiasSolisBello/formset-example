@@ -29,6 +29,11 @@ Ejecutar servidor
 python manage.py runserver
 ```
 
+Ejecutar tests
+```bash
+pytest -rP
+```
+
 ## Otros comandos
 Verificar version de Python y Django respectivamente
 ```bash
