@@ -1,4 +1,17 @@
-# Instalación de  pytest
+# Índice
+
+- [Instalación de pytest](#instalación-de-pytest)
+- [Fixture y Raises](#fixture-y-raises)
+- [Faker](#faker)
+  - [Crear provider personalizado](#crear-provider-personalizado)
+- [Dynamic Fixture](#dynamic-fixture)
+- [Conftest y Factory Boy](#conftest-y-factory-boy)
+- [TestCase](#testcase)
+- [Client](#client)
+
+---
+
+# Instalación de pytest
 
 [Documentación de pytest-django](https://pytest-django.readthedocs.io/en/latest/ "Documentación de pytest-django")
 ```shell
@@ -279,7 +292,7 @@ class UsuarioTestCase(TestCase):
         self.assertEqual(self.common_user.is_staff, False)
         self.assertEqual(self.common_user.is_superuser, False)
     
-    def test_suerpuser_creation(self):
+    def test_superuser_creation(self):
         self.assertEqual(self.superuser.is_staff, True)
         self.assertEqual(self.superuser.is_superuser, True)
 ```
@@ -297,7 +310,7 @@ class UsuarioTestCase(TestCase):
         self.common_user = UsuarioComunFactory.create()
         self.superuser = UsuarioAdminFactory.create()
 		
-	def test_suerpuser_creation(self):
+	def test_superuser_creation(self):
         self.assertEqual(self.superuser.is_staff, True)
         self.assertEqual(self.superuser.is_superuser, True)
 
@@ -323,3 +336,4 @@ class UsuarioTestCase(TestCase):
         self.assertEquals(len(response.json()), 1)
 ```
 
+[Documentacion Testing Django](https://docs.djangoproject.com/en/4.0/topics/testing/tools/ "Documentacion Testing Django")
