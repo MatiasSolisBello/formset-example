@@ -168,15 +168,22 @@ def user_creation():
 ```
 
 # Dynamic Fixture
-Crear instancias automaticamente
+Crear instancias de modelos dinámicos
 
-* este colocara None cuando el campo no es obligatorio
+* Este colocara None cuando el campo no es obligatorio
+* El id (AutoField) se completa automáticamente, a menos que le establezca un valor.
+* Si un campo tiene valor predeterminado, se utiliza de forma predeterminada
+* Si un campo tiene opciones, la primera opción está seleccionada de forma predeterminada.
 
 ```shell
 pip install django-dynamic-fixture
 ```
+[Leer documentación oficial]([https://faker.readthedocs.io/en/master/providers.html](https://django-dynamic-fixture.readthedocs.io/en/latest/index.html) "Leer documentación oficial")
 
-Uso de G:
+## Uso de G:
+
+Recibe una clase del models.py y devolverá una instancia válida y persistente Lleno de datos generados dinámicamente
+
 ```python
 from ddf import G
 
@@ -185,7 +192,22 @@ def user_creation():
     return G(Usuario)
 ```
 
-Con llaves foraneas.
+## Uso de N:
+La funcion N es similar a G, excepto que NO guardará la instancia generada. Esto es bueno para pruebas unitarias, sin tocar la base de datos
+
+También se puede utilizar para manipule la instancia antes de guardarla. Por lo general, lo necesitamos para trabajar con campos personalizados, validaciones personalizadas, etc. Para estos casos, podemos usar el persist_dependencies=True parámetro para guardar dependencias internas de campos ForeignKey y OneToOneField 
+
+```python
+book = N(Book, persist_dependencies=True)
+assert book.id is None # the Book was not persisted
+assert book.publisher.id is not None # internal dependency was persisted
+```
+Dado que la instancia no tiene un ID, NO puede insertar instancias en campos ManyToManyField. Por lo tanto, tenga cuidado de utilizar el G función para estos casos.
+
+## Uso de F 
+
+Personalizar recursivamente a través de campos de relación ForeignKey, OneToOneField y ManyToManyField
+
 ```python
 from ddf import G, N, F
 
@@ -195,145 +217,280 @@ def user_creation():
     return N(Usuario, rol=rol)
 ```
 
-DDF con ManyToMany
+## DDF con ManyToMany
+
+Ejemplo (models.py)
 ```python
-import pytest
+from django.db import models
 
-from faker import Faker
-from ddf import G, F
+class Author(models.Model):
+    name = models.CharField(max_length=255)
 
-from apps.libro.models import Autor, Libro
+class Book(models.Model):
+    name = models.CharField(max_length=255)
+    authors = models.ManyToManyField(Author)
 
-fake = Faker()
-
-@pytest.fixture
-def create_libro():
-    # forma 1
-    autor_1 = G(Autor, )
-    autor_2 = G(Autor)
-    return G(Libro, autor=[autor_1, autor_2, F()])
-
-    # forma 2
-    # autores = [F(nombre=fake.last_name()), F(nombre=fake.first_name())]
-
-    # forma 3
-    # return G(Libro, autor=[F(nombre=fake.last_name()), F(nombre=fake.first_name())])
-
-@pytest.mark.django_db
-def test_create_libro(create_libro):
-    print(create_libro.autor.all())
-    assert create_libro.estado
+    @staticmethod
+    def search_by_author(author_name):
+        return Book.objects.filter(authors__name=author_name)
 ```
 
-# Conftest y Factory Boy
-Conftest: 
+PyTest ejemplo (tests/test_books.py)
+```python
+from django.test import TestCase
+from ddf import G
 
-Factory Boy: Definir archivos tipo "modelos" para el test
+def test_search_book_by_author():
+    author1 = G(Author)
+    author2 = G(Author)
 
-[Documentacion Factory Boy](https://factoryboy.readthedocs.io/en/stable/index.html "Documentacion Factory Boy")
+    book1 = G(Book, authors=[author1])
+    book2 = G(Book, authors=[author2])
+
+    books = Book.objects.search_by_author(author1.name)
+    assert book1 in books
+    assert book2 not in books
+```
+
+Django TestCase (tests/test_books.py)
+```python
+from django.test import TestCase
+from ddf import G
+
+class SearchingBooks(TestCase):
+    def test_search_book_by_author(self):
+        author1 = G(Author)
+        author2 = G(Author)
+
+        book1 = G(Book, authors=[author1])
+        book2 = G(Book, authors=[author2])
+
+        books = Book.objects.search_by_author(author1.name)
+        self.assertTrue(book1 in books)
+        self.assertTrue(book2 not in books)
+```
+
+## Uso de M
+
+característica que le indica a DDF que genere una cadena aleatoria usando una "máscara" (por eso se llama M o Mask) personalizada
+
+* #: representa un número: 0-9
+* -: representa un carácter mayúscula: AZ
+* _: representa un carácter minúsculo: az
+* !: símbolos de máscara de escape, incluido él mismo
+
+```python
+from ddf import G, M
+instance = G(Publisher, address=M(r'St. -______, ### !- -- --'))
+assert instance.address == 'St. Imaiden, 164 - SP BR'
+```
+
+## Uso de C
+
+Función para copiar los datos de un campo a otro
+
+```python
+from ddf import G, C
+
+user = G(User, first_name=C('username'))
+assert instance.first_name == instance.username
+
+instance = G(MyModel, first_name=C('username'), username='eistein')
+assert instance.first_name == 'eistein'
+```
+
+# Conftest
+
+Es un archivo especial (conftest.py) que define fixtures que se compartirán entre todas las pruebas de ese paquete y sus subdirectorios.
+
+Entre sus ventajas esta la reutilización, organización y simplificación
+
+conftest.py
+```python
+import pytest
+from django.contrib.auth.models import User
+from rest_framework.test import APIClient
+from app.models import Post
+
+
+@pytest.fixture
+def api_client():
+    """Cliente DRF para hacer peticiones HTTP."""
+    return APIClient()
+
+
+@pytest.fixture
+def user(db):
+    """Crea un usuario de prueba."""
+    return User.objects.create_user(username="tester", password="1234")
+
+
+@pytest.fixture
+def auth_client(api_client, user):
+    """Devuelve un cliente autenticado."""
+    api_client.force_authenticate(user=user)
+    return api_client
+
+
+@pytest.fixture
+def post(db, user):
+    """Crea un post de prueba."""
+    return Post.objects.create(title="Post de prueba", author=user, content="Texto de ejemplo")
+```
+
+Ejemplo de uso en test_views.py
+```python
+import pytest
+from django.urls import reverse
+
+@pytest.mark.django_db
+def test_list_posts(auth_client, post):
+    url = reverse("posts-list")
+    response = auth_client.get(url)
+    assert response.status_code == 200
+    assert len(response.data) >= 1
+    assert response.data[0]["title"] == "Post de prueba"
+
+```
+Así evitas repetir el mismo User.objects.create() o APIClient() en cada test.
+
+
+# Factory Boy
+
+Es una librería que reemplaza los fixtures estáticos con factories: clases que generan objetos de prueba bajo demanda, con datos realistas y personalizables. Es decir, en lugar de tener una función que “crea un usuario”, defines una fábrica de usuarios que puede crear cientos de usuarios distintos sin repetir código.
+
+**Ventajas frente a fixtures tradicionales**
+* Menos repetición: defines la estructura una vez, luego puedes modificar solo los campos que necesitas.
+* Más control: puedes crear objetos válidos y consistentes sin preocuparte por dependencias (por ejemplo, un Post que siempre tenga un User válido).
+* Escalable: ideal cuando tu modelo crece o tiene relaciones complejas.
 
 ```shell
 pip install factory_boy
 ```
+[Documentacion Factory Boy](https://factoryboy.readthedocs.io/en/stable/index.html "Documentacion Factory Boy")
+
 
 factories.py
 ```python
 import factory
-from faker import Faker
-
-from tests.providers.general_providers import EmailProvider
-from apps.usuario.models import Usuario, Rol
-
-fake = Faker()
-fake.add_provider(EmailProvider)
+from django.contrib.auth.models import User
+from app.models import Post
 
 
-class RolFactory(factory.Factory):
+class UserFactory(factory.django.DjangoModelFactory):
     class Meta:
-        model = Rol
+        model = User
 
-    rol = 'admin'
-	
-class UsuarioComunFactory(factory.Factory):
-    class Meta:
-        model = Usuario
-    
-    nombres = "Oliver"
-    username = "oliver"
-    email = fake.email()
-    is_staff = False
-	
+    username = factory.Sequence(lambda n: f"user_{n}")
+    email = factory.LazyAttribute(lambda o: f"{o.username}@test.com")
+    password = factory.PostGenerationMethodCall("set_password", "1234")
 
-class UsuarioAdminFactory(factory.Factory):
+
+class PostFactory(factory.django.DjangoModelFactory):
     class Meta:
-        model = Usuario
-    
-    nombres = "Oliver"
-    username = "oliver"
-    is_staff = True
-    is_superuser = True
-    rol = factory.SubFactory(RolFactory)
+        model = Post
+
+    title = factory.Faker("sentence")
+    content = factory.Faker("paragraph")
+    author = factory.SubFactory(UserFactory)
 ```
+
+conftest.py
+```python
+import pytest
+from rest_framework.test import APIClient
+from pytest_factoryboy import register
+from .factories import UserFactory, PostFactory
+
+# Registramos las factories como fixtures de pytest
+register(UserFactory)
+register(PostFactory)
+
+
+@pytest.fixture
+def api_client():
+    return APIClient()
+
+
+@pytest.fixture
+def auth_client(api_client, user_factory):
+    """Cliente autenticado con un usuario generado por factory."""
+    user = user_factory()
+    api_client.force_authenticate(user=user)
+    return api_client
+```
+
+test_views.py
+```python
+import pytest
+from django.urls import reverse
+
+@pytest.mark.django_db
+def test_list_posts(auth_client, post_factory):
+    # Creamos varios posts fácilmente
+    post_factory.create_batch(3)
+    url = reverse("posts-list")
+    response = auth_client.get(url)
+    assert response.status_code == 200
+    assert len(response.data) == 3
+
+```
+
 
 # TestCase
 
+Ejemplo con modelo Post con title, content, author(FK, User)
 ```python
 from django.test import TestCase
-from tests.factories import UsuarioAdminFactory, UsuarioComunFactory
+from .factories import PostFactory
 
-
-class UsuarioTestCase(TestCase):
+class PostModelTest(TestCase):
     def setUp(self):
-        self.common_user = UsuarioComunFactory.create()
-        self.superuser = UsuarioAdminFactory.create()
-    
-    def test_common_user_creation(self):
-        self.assertEqual(self.common_user.is_active, True)
-        self.assertEqual(self.common_user.is_staff, False)
-        self.assertEqual(self.common_user.is_superuser, False)
-    
-    def test_superuser_creation(self):
-        self.assertEqual(self.superuser.is_staff, True)
-        self.assertEqual(self.superuser.is_superuser, True)
+        self.post = PostFactory(title="Título fijo de prueba")
+
+    def test_post_creation(self):
+        self.assertIsNotNone(self.post.id)
+        self.assertEqual(self.post.title, "Título fijo de prueba")
+        self.assertTrue(self.post.author.username.startswith("user_"))
 ```
+
+[Documentacion Django Testing](https://docs.djangoproject.com/en/5.2/topics/testing/overview/ "Documentacion Django Testing")
+
 
 # Client
 
+Ejemplo con modelo Post con title, content, author(FK, User)
 
 ```python
 from django.test import TestCase, Client
+from django.urls import reverse
+from .factories import UserFactory, PostFactory
 
-class UsuarioTestCase(TestCase):
-
+class PostViewTests(TestCase):
     def setUp(self):
         self.client = Client()
-        self.common_user = UsuarioComunFactory.create()
-        self.superuser = UsuarioAdminFactory.create()
-		
-	def test_superuser_creation(self):
-        self.assertEqual(self.superuser.is_staff, True)
-        self.assertEqual(self.superuser.is_superuser, True)
+        self.user = UserFactory()
+        self.user.set_password("1234")
+        self.user.save()
 
-    def test_login(self):
-        self.common_user.set_password('oliver')
-        self.common_user.save()
-        response = self.client.login(username='oliver', password='oliver')
-        self.assertEquals(response, True)
+        self.post = PostFactory(author=self.user)
 
-    def test_login_fail(self):
-        self.common_user.set_password('oliver')
-        self.common_user.save()
-        response = self.client.login(username='oliver', password='oliver1')
-        self.assertEquals(response, False)
+    def test_list_posts(self):
+        url = reverse("posts-list")
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, self.post.title)
 
-    def test_users_list(self):
-        self.superuser.set_password('oliver')
-        self.superuser.save()
-        self.client.login(username='oliver', password='oliver')
-        response = self.client.get('/usuarios/listado_usuarios/', 
-                                    HTTP_X_REQUESTED_WITH='XMLHttpRequest')
-        self.assertEquals(response.status_code, 200)
-        self.assertEquals(len(response.json()), 1)
+    def test_create_post_authenticated(self):
+        self.client.login(username=self.user.username, password="1234")
+        url = reverse("posts-list")
+        data = {"title": "Nuevo post", "content": "Texto nuevo", "author": self.user.id}
+        response = self.client.post(url, data)
+        self.assertEqual(response.status_code, 302)  # redirección tras crear, por ejemplo
+        self.assertTrue(self.user.post_set.filter(title="Nuevo post").exists())
 ```
-
-[Documentacion Testing Django](https://docs.djangoproject.com/en/4.0/topics/testing/tools/ "Documentacion Testing Django")
+**Qué pasa detrás**
+* Client() crea un cliente HTTP interno que usa la misma lógica que Django al procesar peticiones, pero sin levantar el servidor.
+* 'self.client.get()', 'post()', 'put()', etc., simulan requests reales.
+* self.client.login() maneja autenticación con la sesión del test (útil para vistas con @login_required).
+* La BD se crea y destruye automáticamente por TestCase.
