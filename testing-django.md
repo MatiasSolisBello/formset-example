@@ -5,7 +5,14 @@
 - [Faker](#faker)
   - [Crear provider personalizado](#crear-provider-personalizado)
 - [Dynamic Fixture](#dynamic-fixture)
-- [Conftest y Factory Boy](#conftest-y-factory-boy)
+  - [Uso de G](#uso-de-g)
+  - [Uso de N](#uso-de-n)
+  - [Uso de F](#uso-de-f)
+  - [DDF con ManyToMany](#ddf-con-manytomany)
+  - [Uso de M](#uso-de-m)
+  - [Uso de C](#uso-de-c)
+- [Conftest](#conftest)
+- [Factory Boy](#factory-boy)
 - [TestCase](#testcase)
 - [Client](#client)
 
@@ -494,3 +501,4 @@ class PostViewTests(TestCase):
 * 'self.client.get()', 'post()', 'put()', etc., simulan requests reales.
 * self.client.login() maneja autenticación con la sesión del test (útil para vistas con @login_required).
 * La BD se crea y destruye automáticamente por TestCase.
+
